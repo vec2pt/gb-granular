@@ -11,6 +11,8 @@
 // Variables / Constants
 // -----------------------------------------------------------------------------
 
+#define PERIOD_VALUE_MIN 0
+#define PERIOD_VALUE_MAX 0x7FF
 uint16_t period_value = 1792;
 
 // Grains
@@ -142,10 +144,11 @@ void main(void) {
     // Period value
     if (!key_pressed(J_A)) {
       if (key_pressed(J_UP))
-        period_value++;
-
+        if (period_value + 1 <= PERIOD_VALUE_MAX)
+          period_value++;
       if (key_pressed(J_DOWN))
-        period_value--;
+        if (period_value >= PERIOD_VALUE_MIN + 1)
+          period_value--;
     }
 
     // Sample switches
