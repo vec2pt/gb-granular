@@ -3,7 +3,7 @@ PROJECT_NAME = granular
 
 # Tools
 GBDK_DIR := resources/gbdk
-GBDK_VERSION = 4.4.0
+GBDK_VERSION = 4.5.0
 LCC := $(GBDK_DIR)/bin/lcc
 LCC_FLAGS += -debug
 PNG2ASSET := $(GBDK_DIR)/bin/png2asset
