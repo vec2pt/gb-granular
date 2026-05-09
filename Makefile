@@ -39,7 +39,7 @@ $(SRC_DIR)/$(ASSETS_DIR)/%.c: $(ASSETS_DIR)/%.png
 	$(PNG2ASSET) $< $(PNG2ASSET_FLAGS) -tiles_only -keep_palette_order -c $@
 
 $(SRC_DIR)/$(ASSETS_DIR)/logo.c: $(ASSETS_DIR)/logo.png
-	$(PNG2ASSET) $< $(PNG2ASSET_FLAGS) -map -tile_origin 112 -keep_palette_order -c $@
+	$(PNG2ASSET) $< $(PNG2ASSET_FLAGS) -map -tile_origin 124 -keep_palette_order -c $@
 
 # Build .o files
 $(OBJ_DIR)/$(ASSETS_DIR)/%.o: $(SRC_DIR)/$(ASSETS_DIR)/%.c

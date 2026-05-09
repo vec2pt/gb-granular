@@ -17,7 +17,7 @@
 // -----------------------------------------------------------------------------
 
 #define VERSION "v0.9.0"
-#define DISPLAY_LOGO false
+#define DISPLAY_LOGO true
 
 // Play / Stop
 bool play = false;
@@ -28,7 +28,7 @@ uint8_t cursor_position = 0;
 uint8_t cursor_position_previous = 1;
 
 // https://gbdev.io/pandocs/Audio.html#frequency
-#define PERIOD_VALUE_MIN 0
+#define PERIOD_VALUE_MIN 44
 #define PERIOD_VALUE_MAX 0x7FF
 uint16_t period_value = 1792;
 
@@ -46,9 +46,9 @@ uint8_t grain_size_part = 0;
 bool loop = false;
 
 // Loop performant delay
-#define DELAY_MIN 1
-#define DELAY_MAX 4
-uint8_t loop_delay = DELAY_MIN;
+#define LOOP_DELAY_MIN 1
+#define LOOP_DELAY_MAX 4
+uint8_t loop_delay = LOOP_DELAY_MAX;
 uint8_t loop_delay_counter = 0;
 
 // Helper variable for printing hex values
@@ -85,13 +85,20 @@ enum {
   UI_CELL_DISABLED_ACTIVE = 0x6C,
 };
 
+enum {
+  UI_ICON_STOP = 0x70,
+  UI_ICON_PLAY,
+  UI_ICON_LOOP,
+  UI_ICON_LOOP_SPEED = 0x79,
+};
+
 // Cells location coordinates
 // clang-format off
 const uint8_t ui_cells_location[NR_OF_GRAINS][2] = {
     {3, 1},  {7, 1},  {11, 1},  {15, 1},
-    {3, 4},  {7, 4},  {11, 4},  {15, 4},
-    {3, 7},  {7, 7},  {11, 7},  {15, 7},
-    {3, 10}, {7, 10}, {11, 10}, {15, 10},
+    {3, 5},  {7, 5},  {11, 5},  {15, 5},
+    {3, 9},  {7, 9},  {11, 9},  {15, 9},
+    {3, 13}, {7, 13}, {11, 13}, {15, 13},
 };
 // clang-format on
 
@@ -133,14 +140,15 @@ void ui_draw_cursor(void) {
   ui_draw_cell(cursor_position_previous);
 
   // Drawing a new cursor
+  uint8_t first_tile = 0x73;
   grid_x = ui_cells_location[cursor_position][0] - 1;
   grid_y = ui_cells_location[cursor_position][1] - 1;
-  set_tile_xy(grid_x, grid_y, 0x73);
-  set_tile_xy(grid_x + 1, grid_y, 0x74);
-  set_tile_xy(grid_x, grid_y + 1, 0x75);
-  set_tile_xy(grid_x + 3, grid_y + 2, 0x76);
-  set_tile_xy(grid_x + 2, grid_y + 3, 0x77);
-  set_tile_xy(grid_x + 3, grid_y + 3, 0x78);
+  set_tile_xy(grid_x, grid_y, first_tile);
+  set_tile_xy(grid_x + 1, grid_y, first_tile + 1);
+  set_tile_xy(grid_x, grid_y + 1, first_tile + 2);
+  set_tile_xy(grid_x + 3, grid_y + 2, first_tile + 3);
+  set_tile_xy(grid_x + 2, grid_y + 3, first_tile + 4);
+  set_tile_xy(grid_x + 3, grid_y + 3, first_tile + 5);
   ui_draw_cell(cursor_position);
 }
 
@@ -149,21 +157,21 @@ void ui_update(void) {
   ui_draw_cell(grain_index_previous);
   ui_draw_cursor();
 
-  (play) ? set_tile_xy(17, 1, 0x71) : set_tile_xy(17, 1, 0x70);
-  (loop) ? set_tile_xy(17, 2, 0x72) : set_tile_xy(17, 2, 0x0);
+  set_tile_xy(18, 1, (play) ? UI_ICON_PLAY : UI_ICON_STOP);
 
-  // WIP
-  // TODO: Rebuild it
-  gotoxy(0, 13);
-  printf("grain: %d ", grain_index);
-  gotoxy(0, 14);
-  printf("grain_size: %d", grain_size);
-  gotoxy(0, 15);
-  printf("pv:%d", period_value);
-  gotoxy(0, 16);
-  printf("ld:%d", loop_delay);
-  gotoxy(5, 16);
-  printf("ld_c:%d", loop_delay_counter);
+  set_tile_xy(18, 5, (loop) ? UI_ICON_LOOP : 0x00);
+
+  set_tile_xy(18, 9,
+              (loop_delay == 1) ? 0x11 : UI_ICON_LOOP_SPEED + loop_delay - 2);
+
+  set_tile_xy(18, 13,
+              (grain_size == GRAIN_FULL_SIZE >> 4) ? 0x26 : 0x10 + grain_size);
+
+  gotoxy(14, 17);
+  printf((period_value >= 1000)  ? "%u"
+         : (period_value >= 100) ? " %u"
+                                 : "  %u",
+         period_value);
 }
 
 void ui_draw(void) {
@@ -177,7 +185,6 @@ void ui_draw(void) {
     printf("%c", hex[0x000Fu & (i)]);
   }
 
-  // gotoxy(0, 17);
   gotoxy(2, 17);
   printf(VERSION);
 
@@ -237,6 +244,7 @@ void play_next_grain(void) {
   grain_index_previous = grain_index;
 
   uint8_t grain_index_candidate = grain_index + 1;
+  grain_index_candidate %= NR_OF_GRAINS;
   while (disabled_cells[grain_index_candidate] &&
          grain_index_candidate != grain_index) {
     grain_index_candidate++;
@@ -245,24 +253,47 @@ void play_next_grain(void) {
   grain_index = grain_index_candidate;
 }
 
-void increase_grain_size(void) {
+void grain_size_increase(void) {
   if (grain_size != GRAIN_FULL_SIZE >> 4) {
     grain_size++;
     grain_size_part = 0;
   }
 }
 
-void decrease_grain_size(void) {
+void grain_size_decrease(void) {
   if (grain_size != 1) {
     grain_size--;
     grain_size_part = 0;
   }
 }
 
+void loop_delay_increase(void) {
+  if (loop_delay != LOOP_DELAY_MAX) {
+    loop_delay++;
+    loop_delay_counter = 0;
+  }
+}
+
+void loop_delay_decrease(void) {
+  if (loop_delay != LOOP_DELAY_MIN) {
+    loop_delay--;
+    loop_delay_counter = 0;
+  }
+}
+
+void period_value_increase(uint8_t step) {
+  if (period_value + step <= PERIOD_VALUE_MAX)
+    period_value += step;
+}
+
+void period_value_decrease(uint8_t step) {
+  if (period_value >= PERIOD_VALUE_MIN + step)
+    period_value -= step;
+}
+
 void granular_reset() {
   grain_size_part = 0;
   loop = false;
-  // grain_index = 0; // Or not to reset?
   loop_delay_counter = 0;
 }
 
@@ -299,8 +330,8 @@ void setup(void) {
   // Tiles
   set_bkg_data(0x60, tiles_TILE_COUNT, tiles_tiles);
 #if DISPLAY_LOGO
-  set_bkg_data(0x70, logo_TILE_COUNT, logo_tiles);
-  show_logo();
+  set_bkg_data(0x7C, logo_TILE_COUNT, logo_tiles);
+  display_logo();
 #endif
 }
 
@@ -325,7 +356,7 @@ void main(void) {
         granular_reset();
     }
 
-    // TODO: Add controls for loop_delay
+    // Start loop
     if (loop) {
       loop_delay_counter++;
       if (loop_delay_counter == loop_delay) {
@@ -335,44 +366,46 @@ void main(void) {
     }
 
     // Cursor movements
-    if (key_ticked(J_RIGHT))
-      move_cursor(CURSOR_RIGHT);
-    else if (key_ticked(J_LEFT))
-      move_cursor(CURSOR_LEFT);
-    else if (key_ticked(J_UP))
-      move_cursor(CURSOR_UP);
-    else if (key_ticked(J_DOWN))
-      move_cursor(CURSOR_DOWN);
+    if (!key_pressed(J_SELECT) && !key_pressed(J_B)) {
+      if (key_ticked(J_RIGHT))
+        move_cursor(CURSOR_RIGHT);
+      else if (key_ticked(J_LEFT))
+        move_cursor(CURSOR_LEFT);
+      else if (key_ticked(J_UP))
+        move_cursor(CURSOR_UP);
+      else if (key_ticked(J_DOWN))
+        move_cursor(CURSOR_DOWN);
 
-    // Enable / Disable cell
-    if (key_ticked(J_A))
-      disabled_cells[cursor_position] = !disabled_cells[cursor_position];
+      // Enable / Disable cell
+      if (key_ticked(J_A))
+        disabled_cells[cursor_position] = !disabled_cells[cursor_position];
+    }
 
-    // TODO
-    // if (key_pressed(J_SELECT)) {
-    //   if (key_pressed(J_RIGHT))
-    //     next_grain();
-    //   if (key_pressed(J_LEFT))
-    //     previous_grain();
-    // }
+    if (key_pressed(J_SELECT) && !key_pressed(J_B)) {
+      // Grain size
+      if (key_ticked(J_RIGHT))
+        grain_size_increase();
+      else if (key_ticked(J_LEFT))
+        grain_size_decrease();
 
-    // Grain size
-    // if (key_pressed(J_A)) {
-    //   if (key_ticked(J_UP))
-    //     increase_grain_size();
-    //   if (key_ticked(J_DOWN))
-    //     decrease_grain_size();
-    // }
+      // Loop delay (speed)
+      if (key_ticked(J_DOWN))
+        loop_delay_increase();
+      else if (key_ticked(J_UP))
+        loop_delay_decrease();
+    }
 
     // Period value
-    // if (!key_pressed(J_A)) {
-    //   if (key_pressed(J_UP))
-    //     if (period_value + 1 <= PERIOD_VALUE_MAX)
-    //       period_value++;
-    //   if (key_pressed(J_DOWN))
-    //     if (period_value >= PERIOD_VALUE_MIN + 1)
-    //       period_value--;
-    // }
+    if (!key_pressed(J_SELECT) && key_pressed(J_B)) {
+      if (key_ticked(J_UP))
+        period_value_increase(100);
+      else if (key_ticked(J_DOWN))
+        period_value_decrease(100);
+      else if (key_pressed(J_RIGHT))
+        period_value_increase(1);
+      else if (key_pressed(J_LEFT))
+        period_value_decrease(1);
+    }
 
     vsync();
   }
