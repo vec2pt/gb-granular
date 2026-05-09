@@ -6,12 +6,6 @@
 
 TODO: add description !!!!
 
-## Interface
-
-<p align="center">
-<img src="doc/gb-granular-interface.svg" alt="gb-granular-interface image."/>
-</p>
-
 ## Controls
 
 - `Start` - Play / Stop
