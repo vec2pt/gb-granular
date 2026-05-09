@@ -4,7 +4,7 @@
 <!-- <img src="doc/gb-granular-00.png" alt="gb-granular title image."/> -->
 <!-- </p> -->
 
-TODO: add description !!!!
+An experimental ROM inspired by [granular synthesis](https://en.wikipedia.org/wiki/Granular_synthesis), designed for generating noise / chiptune textures.
 
 ## Controls
 
