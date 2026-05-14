@@ -28,7 +28,7 @@ An experimental ROM inspired by [granular synthesis](https://en.wikipedia.org/wi
 ![gb-granular-02.png](doc/gb-granular-02.png)
 ![gb-granular-03.png](doc/gb-granular-03.png)
 
-## Special Thanks
+## Acknowledgments
 
 - [GBDK-2020](https://github.com/gbdk-2020/gbdk-2020)
 - [Pan Docs](https://gbdev.io/pandocs/)
