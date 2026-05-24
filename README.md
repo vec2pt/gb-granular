@@ -1,8 +1,8 @@
 # Granular (Game Boy ROM)
 
-<!-- <p align="center"> -->
-<!-- <img src="doc/gb-granular-00.png" alt="gb-granular title image."/> -->
-<!-- </p> -->
+<p align="center">
+<img src="doc/gb-granular-00.webp" alt="gb-granular title image."/>
+</p>
 
 An experimental ROM inspired by [granular synthesis](https://en.wikipedia.org/wiki/Granular_synthesis), designed for generating noise / chiptune textures.
 
